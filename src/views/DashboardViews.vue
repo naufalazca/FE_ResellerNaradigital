@@ -1,22 +1,54 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { voucherPaymentService } from '@/service/voucherpaymentsServices'
+import type { VoucherPaymentStatsData } from '@/service/voucherpaymentsServices'
 
-const stats = ref({
-  totalOrders: 0,
-  totalRevenue: 0,
-  pendingOrders: 0,
-  completedOrders: 0,
+const stats = ref<VoucherPaymentStatsData>({
+  total_payments: 0,
+  unique_active_vouchers: 0,
+  unique_archived_vouchers: 0,
+  total_amount: 0,
+  total_net_amount: 0,
+  total_reseller_fee: 0,
 })
 
-onMounted(() => {
-  // TODO: Fetch real stats from API
-  // For now using dummy data
-  stats.value = {
-    totalOrders: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-    completedOrders: 0,
+const loading = ref(true)
+const error = ref<string | null>(null)
+
+const getCurrentMonth = () => {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ]
+  const now = new Date()
+  return `${months[now.getMonth()]} ${now.getFullYear()}`
+}
+
+const currentMonth = ref(getCurrentMonth())
+
+const fetchPaymentStats = async () => {
+  try {
+    loading.value = true
+    error.value = null
+
+    // Fetch stats untuk bulan ini
+    const response = await voucherPaymentService.getCurrentMonthStats()
+
+    if (response.success) {
+      stats.value = response.data
+    } else {
+      error.value = response.message || 'Gagal mengambil data statistik'
+    }
+  } catch (err) {
+    console.error('Error fetching payment stats:', err)
+    error.value = err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data'
+  } finally {
+    loading.value = false
   }
+}
+
+onMounted(() => {
+  fetchPaymentStats()
 })
 </script>
 
@@ -31,20 +63,32 @@ onMounted(() => {
 
     <main class="main-content">
       <section class="welcome-section">
-        <p class="page-subtitle">Kelola bisnis reseller Anda dengan mudah</p>
+        <p class="page-subtitle">Statistik Pembayaran Voucher - {{ currentMonth }}</p>
       </section>
 
-      <section class="stats-section">
+      <!-- Loading State -->
+      <div v-if="loading" class="loading-state">
+        <p>Memuat data statistik...</p>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="error-state">
+        <p>{{ error }}</p>
+        <button @click="fetchPaymentStats" class="retry-button">Coba Lagi</button>
+      </div>
+
+      <section v-else class="stats-section">
         <div class="stat-card">
           <div class="stat-header">
             <div class="stat-icon orders">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <p class="stat-label">Total Pesanan</p>
+            <p class="stat-label">Total Voucher Terjual</p>
           </div>
-          <h3 class="stat-value">{{ stats.totalOrders }}</h3>
+          <h3 class="stat-value">{{ stats.total_payments }}</h3>
+          <p class="stat-description">Transaksi bulan ini</p>
         </div>
 
         <div class="stat-card">
@@ -54,78 +98,36 @@ onMounted(() => {
                 <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <p class="stat-label">Total Pendapatan</p>
+            <p class="stat-label">Pendapatan</p>
           </div>
-          <h3 class="stat-value">Rp {{ stats.totalRevenue.toLocaleString('id-ID') }}</h3>
+          <h3 class="stat-value">Rp {{ stats.total_amount.toLocaleString('id-ID') }}</h3>
+          <p class="stat-description">Total pendapatan kotor</p>
         </div>
 
         <div class="stat-card">
           <div class="stat-header">
             <div class="stat-icon pending">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <p class="stat-label">Pesanan Pending</p>
+            <p class="stat-label">Voucher Aktif</p>
           </div>
-          <h3 class="stat-value">{{ stats.pendingOrders }}</h3>
+          <h3 class="stat-value">{{ stats.unique_active_vouchers }}</h3>
+          <p class="stat-description">Voucher dengan pembayaran</p>
         </div>
 
         <div class="stat-card">
           <div class="stat-header">
             <div class="stat-icon completed">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <p class="stat-label">Pesanan Selesai</p>
+            <p class="stat-label">Fee Reseller</p>
           </div>
-          <h3 class="stat-value">{{ stats.completedOrders }}</h3>
-        </div>
-      </section>
-
-      <section class="quick-actions">
-        <h3 class="section-title">Menu Utama</h3>
-        <div class="actions-grid">
-          <button class="action-card">
-            <div class="action-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <h4>Pesanan Baru</h4>
-            <p>Buat pesanan baru</p>
-          </button>
-
-          <button class="action-card">
-            <div class="action-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <h4>Daftar Pesanan</h4>
-            <p>Lihat semua pesanan</p>
-          </button>
-
-          <button class="action-card">
-            <div class="action-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <h4>Produk</h4>
-            <p>Kelola produk</p>
-          </button>
-
-          <button class="action-card">
-            <div class="action-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <h4>Laporan</h4>
-            <p>Lihat laporan penjualan</p>
-          </button>
+          <h3 class="stat-value">Rp {{ stats.total_reseller_fee.toLocaleString('id-ID') }}</h3>
+          <p class="stat-description">Total fee bulan ini</p>
         </div>
       </section>
     </main>
@@ -188,6 +190,48 @@ onMounted(() => {
   color: #64748B;
   margin: 0;
   letter-spacing: -0.01em;
+}
+
+/* Loading & Error States */
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  margin-bottom: 3rem;
+  background: #FFFFFF;
+  border: 1px solid #E7E5E4;
+  border-radius: 16px;
+}
+
+.loading-state p,
+.error-state p {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  color: #64748B;
+  margin: 0 0 1rem 0;
+}
+
+.retry-button {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #FFFFFF;
+  background: #14B8A6;
+  border: none;
+  border-radius: 8px;
+  padding: 0.625rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.retry-button:hover {
+  background: #0D9488;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(20, 184, 166, 0.2);
+}
+
+.retry-button:active {
+  transform: translateY(0);
 }
 
 /* Stats Section */
@@ -289,107 +333,17 @@ onMounted(() => {
   font-size: 2.25rem;
   font-weight: 700;
   color: #0F172A;
-  margin: 0;
+  margin: 0 0 0.5rem 0;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
 
-/* Quick Actions */
-.quick-actions {
-  margin-top: 4rem;
-}
-
-.section-title {
-  font-family: 'Crimson Pro', serif;
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #0F172A;
-  margin: 0 0 2rem 0;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.5rem;
-}
-
-.action-card {
-  background: #FFFFFF;
-  border: 1px solid #E7E5E4;
-  border-radius: 16px;
-  padding: 2rem 1.5rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.action-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 0;
-  background: linear-gradient(180deg, rgba(20, 184, 166, 0.05) 0%, transparent 100%);
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.action-card:hover::before {
-  height: 100%;
-}
-
-.action-card:hover {
-  border-color: #14B8A6;
-  box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.04),
-    0 10px 20px rgba(20, 184, 166, 0.1);
-  transform: translateY(-4px);
-}
-
-.action-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-  background: rgba(20, 184, 166, 0.1);
-  color: #14B8A6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1.25rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  z-index: 1;
-}
-
-.action-card:hover .action-icon {
-  background: #14B8A6;
-  color: #FFFFFF;
-  transform: scale(1.05);
-}
-
-.action-card h4 {
+.stat-description {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #0F172A;
-  margin: 0 0 0.5rem 0;
-  letter-spacing: -0.01em;
-  position: relative;
-  z-index: 1;
-}
-
-.action-card p {
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.875rem;
-  color: #64748B;
+  font-size: 0.8125rem;
+  color: #94A3B8;
   margin: 0;
   letter-spacing: -0.01em;
-  position: relative;
-  z-index: 1;
 }
 
 /* Responsive */
@@ -400,10 +354,6 @@ onMounted(() => {
 
   .stats-section {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  }
-
-  .actions-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
 
@@ -441,20 +391,6 @@ onMounted(() => {
   .stat-card {
     padding: 1.75rem;
   }
-
-  .quick-actions {
-    margin-top: 3rem;
-  }
-
-  .section-title {
-    font-size: 1.625rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .actions-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
 }
 
 @media (max-width: 480px) {
@@ -485,14 +421,6 @@ onMounted(() => {
   .stat-value {
     font-size: 2rem;
   }
-
-  .section-title {
-    font-size: 1.5rem;
-  }
-
-  .action-card {
-    padding: 1.75rem 1.25rem;
-  }
 }
 
 /* Accessibility */
@@ -504,11 +432,5 @@ onMounted(() => {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* Focus styles for accessibility */
-.action-card:focus-visible {
-  outline: 2px solid #14B8A6;
-  outline-offset: 2px;
 }
 </style>

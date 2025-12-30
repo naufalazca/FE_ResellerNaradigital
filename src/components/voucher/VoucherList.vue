@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { voucherService, type VoucherData, type GetAllVoucherParams } from '@/service/voucherServices'
+import { voucherService, type VoucherData, type GetAllVoucherParams, type VoucherGroupData } from '@/service/voucherServices'
 
 // Props
 interface Props {
@@ -20,7 +20,28 @@ const error = ref<string | null>(null)
 const searchQuery = ref('')
 const selectedStatus = ref<string>('all')
 const selectedIsSold = ref<string>('all')
+const selectedGroupId = ref<number | undefined>(undefined)
 const selectedVouchers = ref<string[]>([])
+
+// Voucher groups state
+const voucherGroups = ref<VoucherGroupData[]>([])
+const isLoadingGroups = ref(false)
+
+// Fetch voucher groups
+const fetchVoucherGroups = async () => {
+  try {
+    isLoadingGroups.value = true
+    const response = await voucherService.getAllVoucherGroups()
+
+    if (response.success) {
+      voucherGroups.value = response.data
+    }
+  } catch (error) {
+    console.error('Failed to fetch voucher groups:', error)
+  } finally {
+    isLoadingGroups.value = false
+  }
+}
 
 // Filters
 const filters = computed<GetAllVoucherParams>(() => {
@@ -32,6 +53,10 @@ const filters = computed<GetAllVoucherParams>(() => {
 
   if (selectedIsSold.value !== 'all') {
     params.is_sold = selectedIsSold.value === 'sold' ? 1 : 0
+  }
+
+  if (selectedGroupId.value !== undefined) {
+    params.group_id = selectedGroupId.value
   }
 
   if (searchQuery.value.trim()) {
@@ -156,6 +181,7 @@ const clearAutoRefresh = () => {
 
 // Lifecycle
 onMounted(async () => {
+  await fetchVoucherGroups()
   await fetchVouchers()
   setupAutoRefresh()
 })
@@ -182,6 +208,15 @@ const formatDate = (dateString?: string) => {
   } catch {
     return dateString
   }
+}
+
+// Get group name by group_id
+const getGroupName = (groupId: number) => {
+  const group = voucherGroups.value.find(g => g.id === groupId)
+  if (!group) return '-'
+
+  // Remove "hotspot_" prefix if exists
+  return group.groupname.replace(/^hotspot_/i, '')
 }
 
 // Get status badge class
@@ -224,6 +259,17 @@ defineExpose({
         </div>
 
         <div class="filters-group">
+          <select v-model.number="selectedGroupId" @change="fetchVouchers" class="filter-select" :disabled="isLoadingGroups">
+            <option :value="undefined">All Groups</option>
+            <option
+              v-for="group in voucherGroups"
+              :key="group.id"
+              :value="group.id"
+            >
+              {{ group.groupname }}
+            </option>
+          </select>
+
           <select v-model="selectedStatus" @change="fetchVouchers" class="filter-select">
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -287,7 +333,7 @@ defineExpose({
               />
             </th>
             <th>Username</th>
-            <th>Group Name</th>
+            <th>Profile</th>
             <th>Status</th>
             <th>Sold</th>
             <th>Keterangan</th>
@@ -306,7 +352,7 @@ defineExpose({
               />
             </td>
             <td class="td-username">{{ voucher.username }}</td>
-            <td>{{ voucher.groupname }}</td>
+            <td>{{ getGroupName(voucher.group_id) }}</td>
             <td>
               <span :class="['status-badge', getStatusBadgeClass(voucher.status)]">
                 {{ voucher.status || 'unknown' }}

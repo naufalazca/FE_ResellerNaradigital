@@ -1,12 +1,70 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import VoucherList from '@/components/voucher/VoucherList.vue'
+import VoucherGenerateModal from '@/components/voucher/VoucherGenerateModal.vue'
+import { voucherService } from '@/service/voucherServices'
 
 const voucherListRef = ref<InstanceType<typeof VoucherList> | null>(null)
+const isGenerateModalOpen = ref(false)
+
+// Statistics state
+const statistics = ref({
+  total_generated: 0,
+  total_active: 0,
+  total_available: 0,
+  total_sold: 0,
+  total_expired: 0
+})
+
+const isLoadingStats = ref(false)
+
+const fetchStatistics = async () => {
+  try {
+    isLoadingStats.value = true
+    const response = await voucherService.getVoucherStatistics()
+
+    if (response.success) {
+      statistics.value = {
+        total_generated: response.data.total_generated,
+        total_active: response.data.total_active,
+        total_available: response.data.total_available,
+        total_sold: response.data.total_sold,
+        total_expired: response.data.total_expired
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch statistics:', error)
+  } finally {
+    isLoadingStats.value = false
+  }
+}
 
 const handleRefresh = () => {
   voucherListRef.value?.refresh()
+  fetchStatistics()
 }
+
+const openGenerateModal = () => {
+  isGenerateModalOpen.value = true
+}
+
+const closeGenerateModal = () => {
+  isGenerateModalOpen.value = false
+}
+
+const handleGenerateSuccess = (count: number) => {
+  // Refresh list after successful generation
+  voucherListRef.value?.refresh()
+  fetchStatistics()
+  closeGenerateModal()
+
+  // Show success notification (you can implement a toast/notification system)
+  alert(`Successfully generated ${count} voucher(s)!`)
+}
+
+onMounted(() => {
+  fetchStatistics()
+})
 </script>
 
 <template>
@@ -25,7 +83,7 @@ const handleRefresh = () => {
             </svg>
             Refresh
           </button>
-          <button class="btn-action btn-primary">
+          <button @click="openGenerateModal" class="btn-action btn-primary">
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M10 5v10m-5-5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -48,7 +106,7 @@ const handleRefresh = () => {
             </div>
             <p class="stat-label">Total Vouchers</p>
           </div>
-          <h3 class="stat-value">-</h3>
+          <h3 class="stat-value">{{ isLoadingStats ? '-' : statistics.total_generated }}</h3>
           <p class="stat-description">All vouchers in system</p>
         </div>
 
@@ -61,7 +119,7 @@ const handleRefresh = () => {
             </div>
             <p class="stat-label">Active</p>
           </div>
-          <h3 class="stat-value">-</h3>
+          <h3 class="stat-value">{{ isLoadingStats ? '-' : statistics.total_active }}</h3>
           <p class="stat-description">Ready to use</p>
         </div>
 
@@ -74,7 +132,7 @@ const handleRefresh = () => {
             </div>
             <p class="stat-label">Sold</p>
           </div>
-          <h3 class="stat-value">-</h3>
+          <h3 class="stat-value">{{ isLoadingStats ? '-' : statistics.total_sold }}</h3>
           <p class="stat-description">Already purchased</p>
         </div>
 
@@ -87,7 +145,7 @@ const handleRefresh = () => {
             </div>
             <p class="stat-label">Available</p>
           </div>
-          <h3 class="stat-value">-</h3>
+          <h3 class="stat-value">{{ isLoadingStats ? '-' : statistics.total_available }}</h3>
           <p class="stat-description">Ready for sale</p>
         </div>
       </section>
@@ -97,6 +155,13 @@ const handleRefresh = () => {
         <VoucherList ref="voucherListRef" />
       </section>
     </main>
+
+    <!-- Generate Modal -->
+    <VoucherGenerateModal
+      :is-open="isGenerateModalOpen"
+      @close="closeGenerateModal"
+      @success="handleGenerateSuccess"
+    />
   </div>
 </template>
 

@@ -96,6 +96,64 @@ export interface DeleteByKeteranganResponse {
   }
 }
 
+export interface VoucherStatisticsParams {
+  month?: number
+  year?: number
+  group_id?: number
+  reseller_id?: number
+}
+
+export interface VoucherStatisticsResponse {
+  success: boolean
+  message: string
+  data: {
+    total_generated: number
+    total_active: number
+    total_available: number
+    total_sold: number
+    total_expired: number
+    filter: VoucherStatisticsParams
+  }
+}
+
+export interface VoucherStatusBreakdownResponse {
+  success: boolean
+  message: string
+  data: {
+    status_breakdown: {
+      active: number
+      inactive: number
+      expired: number
+    }
+    filter: VoucherStatisticsParams
+  }
+}
+
+export interface VoucherGroupData {
+  id: number
+  groupname: string
+  price?: number
+  description?: string
+  bandwidth_upload?: string
+  bandwidth_download?: string
+  expiration_type?: string
+  expiration_value?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface VoucherGroupResponse {
+  success: boolean
+  message: string
+  data: VoucherGroupData
+}
+
+export interface VoucherGroupsResponse {
+  success: boolean
+  message: string
+  data: VoucherGroupData[]
+}
+
 // Voucher Services
 export const voucherService = {
   /**
@@ -193,5 +251,76 @@ export const voucherService = {
     return api.delete<DeleteByKeteranganResponse>(
       `/voucher-data/by-keterangan/${keterangan}`
     )
+  },
+
+  /**
+   * Get voucher statistics
+   * @param params - Filter parameters (month, year, group_id, reseller_id)
+   * @returns Promise with voucher statistics
+   */
+  async getVoucherStatistics(
+    params?: VoucherStatisticsParams
+  ): Promise<VoucherStatisticsResponse> {
+    let endpoint = '/voucher-data/statistics'
+
+    if (params) {
+      const queryParams = new URLSearchParams()
+
+      if (params.month) queryParams.append('month', params.month.toString())
+      if (params.year) queryParams.append('year', params.year.toString())
+      if (params.group_id) queryParams.append('group_id', params.group_id.toString())
+      if (params.reseller_id) queryParams.append('reseller_id', params.reseller_id.toString())
+
+      const queryString = queryParams.toString()
+      if (queryString) {
+        endpoint += `?${queryString}`
+      }
+    }
+
+    return api.get<VoucherStatisticsResponse>(endpoint)
+  },
+
+  /**
+   * Get voucher status breakdown
+   * @param params - Filter parameters (month, year, group_id, reseller_id)
+   * @returns Promise with voucher status breakdown
+   */
+  async getVoucherStatusBreakdown(
+    params?: VoucherStatisticsParams
+  ): Promise<VoucherStatusBreakdownResponse> {
+    let endpoint = '/voucher-data/statistics/status-breakdown'
+
+    if (params) {
+      const queryParams = new URLSearchParams()
+
+      if (params.month) queryParams.append('month', params.month.toString())
+      if (params.year) queryParams.append('year', params.year.toString())
+      if (params.group_id) queryParams.append('group_id', params.group_id.toString())
+      if (params.reseller_id) queryParams.append('reseller_id', params.reseller_id.toString())
+
+      const queryString = queryParams.toString()
+      if (queryString) {
+        endpoint += `?${queryString}`
+      }
+    }
+
+    return api.get<VoucherStatusBreakdownResponse>(endpoint)
+  },
+
+  /**
+   * Get all voucher groups
+   * @returns Promise with array of voucher groups
+   */
+  async getAllVoucherGroups(): Promise<VoucherGroupsResponse> {
+    return api.get<VoucherGroupsResponse>('/voucher-groups')
+  },
+
+  /**
+   * Get voucher group details by ID (including groupname and other group info)
+   * @param id - Voucher group ID
+   * @returns Promise with voucher group data
+   */
+  async getVoucherGroupById(id: number): Promise<VoucherGroupResponse> {
+    return api.get<VoucherGroupResponse>(`/voucher-groups/${id}`)
   },
 }
