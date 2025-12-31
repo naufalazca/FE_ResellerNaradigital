@@ -164,7 +164,7 @@ export const voucherService = {
   async createVoucherData(
     voucherData: CreateVoucherRequest
   ): Promise<CreateVoucherResponse> {
-    return api.post<CreateVoucherResponse>('/api/voucher-data/reseller', voucherData)
+    return api.post<CreateVoucherResponse>('/voucher-data/reseller', voucherData)
   },
 
   /**
@@ -175,7 +175,7 @@ export const voucherService = {
   async getAllVoucherData(
     params?: GetAllVoucherParams
   ): Promise<VoucherDataResponse> {
-    let endpoint = '/api/voucher-data/reseller'
+    let endpoint = '/voucher-data/reseller'
 
     if (params) {
       const queryParams = new URLSearchParams()
@@ -202,7 +202,7 @@ export const voucherService = {
    * @returns Promise with voucher data
    */
   async getVoucherDataById(id: number): Promise<VoucherDataResponse> {
-    return api.get<VoucherDataResponse>(`/api/voucher-data/reseller/${id}`)
+    return api.get<VoucherDataResponse>(`/voucher-data/reseller/${id}`)
   },
 
   /**
@@ -213,7 +213,7 @@ export const voucherService = {
   async deleteVoucherByUsername(
     username: string
   ): Promise<DeleteVoucherResponse> {
-    return api.delete<DeleteVoucherResponse>(`/api/voucher-data/reseller/username/${username}`)
+    return api.delete<DeleteVoucherResponse>(`/voucher-data/reseller/username/${username}`)
   },
 
   /**
@@ -225,7 +225,7 @@ export const voucherService = {
     usernames: string[]
   ): Promise<DeleteBatchResponse> {
     const response = await authenticatedFetch(
-      `${import.meta.env.VITE_API_URL}/api/voucher-data/reseller/batch`,
+      `${import.meta.env.VITE_API_URL}/voucher-data/reseller/batch`,
       {
         method: 'DELETE',
         body: JSON.stringify({ usernames }),
@@ -249,7 +249,7 @@ export const voucherService = {
     keterangan: string
   ): Promise<DeleteByKeteranganResponse> {
     return api.delete<DeleteByKeteranganResponse>(
-      `/api/voucher-data/reseller/by-keterangan/${keterangan}`
+      `/voucher-data/reseller/by-keterangan/${keterangan}`
     )
   },
 
@@ -261,7 +261,7 @@ export const voucherService = {
   async getVoucherStatistics(
     params?: VoucherStatisticsParams
   ): Promise<VoucherStatisticsResponse> {
-    let endpoint = '/api/voucher-data/reseller/statistics'
+    let endpoint = '/voucher-data/statistics'
 
     if (params) {
       const queryParams = new URLSearchParams()
@@ -288,7 +288,7 @@ export const voucherService = {
   async getVoucherStatusBreakdown(
     params?: VoucherStatisticsParams
   ): Promise<VoucherStatusBreakdownResponse> {
-    let endpoint = '/api/voucher-data/reseller/statistics/status-breakdown'
+    let endpoint = '/voucher-data/statistics/status-breakdown'
 
     if (params) {
       const queryParams = new URLSearchParams()

@@ -3,6 +3,7 @@ export interface User {
   id: number
   username: string
   role: string
+  reseller_id?: number
 }
 
 export interface LoginResponse {
@@ -139,8 +140,15 @@ export const api = {
     )
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Request gagal')
+      let errorMessage = `Request gagal dengan status ${response.status}`
+      try {
+        const error = await response.json()
+        errorMessage = error.message || errorMessage
+      } catch {
+        // Response bukan JSON, gunakan status text
+        errorMessage = response.statusText || errorMessage
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()
@@ -156,8 +164,15 @@ export const api = {
     )
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Request gagal')
+      let errorMessage = `Request gagal dengan status ${response.status}`
+      try {
+        const error = await response.json()
+        errorMessage = error.message || errorMessage
+      } catch {
+        // Response bukan JSON, gunakan status text
+        errorMessage = response.statusText || errorMessage
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()
@@ -173,8 +188,15 @@ export const api = {
     )
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Request gagal')
+      let errorMessage = `Request gagal dengan status ${response.status}`
+      try {
+        const error = await response.json()
+        errorMessage = error.message || errorMessage
+      } catch {
+        // Response bukan JSON, gunakan status text
+        errorMessage = response.statusText || errorMessage
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()
@@ -189,8 +211,15 @@ export const api = {
     )
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Request gagal')
+      let errorMessage = `Request gagal dengan status ${response.status}`
+      try {
+        const error = await response.json()
+        errorMessage = error.message || errorMessage
+      } catch {
+        // Response bukan JSON, gunakan status text
+        errorMessage = response.statusText || errorMessage
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()
@@ -206,8 +235,15 @@ export const api = {
     )
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Request gagal')
+      let errorMessage = `Request gagal dengan status ${response.status}`
+      try {
+        const error = await response.json()
+        errorMessage = error.message || errorMessage
+      } catch {
+        // Response bukan JSON, gunakan status text
+        errorMessage = response.statusText || errorMessage
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()

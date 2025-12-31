@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import VoucherList from '@/components/voucher/VoucherList.vue'
 import VoucherGenerateModal from '@/components/voucher/VoucherGenerateModal.vue'
 import { voucherService } from '@/service/voucherServices'
+import { authService } from '@/service/authServices'
 
 const voucherListRef = ref<InstanceType<typeof VoucherList> | null>(null)
 const isGenerateModalOpen = ref(false)
@@ -21,7 +22,12 @@ const isLoadingStats = ref(false)
 const fetchStatistics = async () => {
   try {
     isLoadingStats.value = true
-    const response = await voucherService.getVoucherStatistics()
+
+    // Get current user's reseller_id
+    const currentUser = authService.getCurrentUser()
+    const params = currentUser?.reseller_id ? { reseller_id: currentUser.reseller_id } : undefined
+
+    const response = await voucherService.getVoucherStatistics(params)
 
     if (response.success) {
       statistics.value = {
@@ -34,6 +40,17 @@ const fetchStatistics = async () => {
     }
   } catch (error) {
     console.error('Failed to fetch statistics:', error)
+    // Set default values on error
+    statistics.value = {
+      total_generated: 0,
+      total_active: 0,
+      total_available: 0,
+      total_sold: 0,
+      total_expired: 0
+    }
+    // Show error to user
+    const errorMessage = error instanceof Error ? error.message : 'Gagal memuat statistik'
+    alert(`Error: ${errorMessage}`)
   } finally {
     isLoadingStats.value = false
   }
